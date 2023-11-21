@@ -8,7 +8,6 @@ import Icons from '../../icons'
 
 import { Emoji } from '../Emoji'
 import { Navigation } from '../Navigation'
-import { PureInlineComponent } from '../HOCs'
 
 const Performance = {
   rowsPerRender: 10,
@@ -19,6 +18,8 @@ export default class Picker extends Component {
     super()
 
     this.observers = []
+
+    this.handleDarkMedia = this.handleDarkMedia.bind(this)
 
     this.state = {
       pos: [-1, -1],
@@ -127,6 +128,10 @@ export default class Picker extends Component {
 
   unregister() {
     document.removeEventListener('click', this.handleClickOutside)
+
+     if (this.darkMedia) {
+      this.darkMedia.removeListener(this.handleDarkMedia)
+    }
     this.unobserve()
   }
 
@@ -201,13 +206,15 @@ export default class Picker extends Component {
       this.darkMedia = matchMedia('(prefers-color-scheme: dark)')
       if (this.darkMedia.media.match(/^not/)) return 'light'
 
-      this.darkMedia.addListener(() => {
-        if (this.props.theme != 'auto') return
-        this.setState({ theme: this.darkMedia.matches ? 'dark' : 'light' })
-      })
+      this.darkMedia.addListener(this.handleDarkMedia)
     }
 
     return this.darkMedia.matches ? 'dark' : 'light'
+  }
+
+  handleDarkMedia() {
+    if (this.props.theme != 'auto') return
+    this.setState({ theme: this.darkMedia.matches ? 'dark' : 'light' })
   }
 
   handleClickOutside = (e) => {
@@ -754,49 +761,47 @@ export default class Picker extends Component {
     const key = pos.concat(emoji.id).join('')
 
     return (
-      <PureInlineComponent key={key} {...{ selected, skin, size }}>
-        <button
-          aria-label={native}
-          aria-selected={selected || undefined}
-          aria-posinset={posinset}
-          aria-setsize={grid.setsize}
-          data-keyboard={this.state.keyboard}
-          title={this.props.previewPosition == 'none' ? emoji.name : undefined}
-          type="button"
-          class="flex flex-center flex-middle"
-          tabindex="-1"
-          onClick={(e) => this.handleEmojiClick({ e, emoji })}
-          onMouseEnter={() => this.handleEmojiOver(pos)}
-          onMouseLeave={() => this.handleEmojiOver()}
+      <button
+        aria-label={native}
+        aria-selected={selected || undefined}
+        aria-posinset={posinset}
+        aria-setsize={grid.setsize}
+        data-keyboard={this.state.keyboard}
+        title={this.props.previewPosition == 'none' ? emoji.name : undefined}
+        type="button"
+        class="flex flex-center flex-middle"
+        tabindex="-1"
+        onClick={(e) => this.handleEmojiClick({ e, emoji })}
+        onMouseEnter={() => this.handleEmojiOver(pos)}
+        onMouseLeave={() => this.handleEmojiOver()}
+        style={{
+          width: this.props.emojiButtonSize,
+          height: this.props.emojiButtonSize,
+          fontSize: this.props.emojiSize,
+          lineHeight: 0,
+        }}
+      >
+        <div
+          aria-hidden="true"
+          class="background"
           style={{
-            width: this.props.emojiButtonSize,
-            height: this.props.emojiButtonSize,
-            fontSize: this.props.emojiSize,
-            lineHeight: 0,
+            borderRadius: this.props.emojiButtonRadius,
+            backgroundColor: this.props.emojiButtonColors
+              ? this.props.emojiButtonColors[
+                  (posinset - 1) % this.props.emojiButtonColors.length
+                ]
+              : undefined,
           }}
-        >
-          <div
-            aria-hidden="true"
-            class="background"
-            style={{
-              borderRadius: this.props.emojiButtonRadius,
-              backgroundColor: this.props.emojiButtonColors
-                ? this.props.emojiButtonColors[
-                    (posinset - 1) % this.props.emojiButtonColors.length
-                  ]
-                : undefined,
-            }}
-          ></div>
-          <Emoji
-            emoji={emoji}
-            set={this.props.set}
-            size={this.props.emojiSize}
-            skin={skin}
-            spritesheet={true}
-            getSpritesheetURL={this.props.getSpritesheetURL}
-          />
-        </button>
-      </PureInlineComponent>
+        ></div>
+        <Emoji
+          emoji={emoji}
+          set={this.props.set}
+          size={this.props.emojiSize}
+          skin={skin}
+          spritesheet={true}
+          getSpritesheetURL={this.props.getSpritesheetURL}
+        />
+      </button>
     )
   }
 
